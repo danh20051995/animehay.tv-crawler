@@ -188,12 +188,26 @@ const download = (src, chapter) => {
   })
 }
 
-;(async () => {
-  console.log('============================================================================')
-  try {
-    let url = 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html'
-    global.animeName = getAnimeName(url)
+const ensureReady = () => {
+  let dirs = [
+    `./logs`,
+    `./output`
+  ]
 
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir)
+    }
+  }
+}
+
+;(async () => {
+  try {
+    ensureReady()
+
+    let url = 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html' // change this line to download another anime
+
+    global.animeName = getAnimeName(url)
     let chapters = await getAllChapUrl(url)
     for (let chapter of chapters) {
       await loadSourceHTML(chapter)
