@@ -171,19 +171,34 @@ const download = (src, chapter) => {
     return console.log(`Already exists: ${fileName}`)
   }
 
-  const { exec } = require('child_process')
-  const cmd = `ffmpeg -i "${src}" -c copy -bsf:a aac_adtstoasc "${mp4Path}"`
+  const { spawn } = require('child_process')
+  const cmd = [
+    `-i`,
+    `${src}`,
+    `-c`,
+    `copy`,
+    `-bsf:a`,
+    `aac_adtstoasc`,
+    `${mp4Path}`
+  ]
+
   console.log(cmd)
 
   return new Promise((resolve, reject) => {
     console.log(`Downloading: ${fileName}`)
 
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error)
-      }
-  
-      resolve(fileName)
+    const ffmpeg = spawn('ffmpeg', cmd)
+    ffmpeg.stdout.on('data', data => {
+      console.log(`stdout: ${data}`)
+    })
+    
+    ffmpeg.stderr.on('data', data => {
+      console.log(`stderr: ${data}`)
+    })
+    
+    ffmpeg.on('close', code => {
+      console.log(`child process exited with code ${code}`)
+      resolve(code)
     })
   })
 }
