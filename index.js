@@ -137,7 +137,7 @@ const getIframeSrc = src => {
   return result
 }
 
-const loadVideoData = async src => {
+const loadVideoMeta = async src => {
   let animeName = global.animeName
   let parts = url.parse(src, true)
   let key = parts.query.key
@@ -234,7 +234,7 @@ const ensureReady = () => {
       let chapter = iframeSrcs[index]
       let chapterName = chapters[index].split('/').pop().replace(/\.[a-zA-Z]*$/, '')
 
-      let videoMetaUrl = await loadVideoData(chapter)
+      let videoMetaUrl = await loadVideoMeta(chapter)
       await download(videoMetaUrl, chapterName)
     }
 
