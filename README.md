@@ -14,4 +14,4 @@
 
 * Run with yarn: `yarn start`
 * Run with npm: `npm run start`
-* Run node: `node start`
+* Run with node: `node index.js`
