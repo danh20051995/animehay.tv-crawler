@@ -217,29 +217,40 @@ const ensureReady = () => {
 }
 
 ;(async () => {
-  try {
-    ensureReady()
+  ensureReady()
+  for (const url of [
+    // 'http://animehay.tv/phim/gintama-tap-1-2-e79374.html',
+    // 'http://animehay.tv/phim/gintama-2015-tap-1-e66727.html',
+    // 'http://animehay.tv/phim/gintama-2017-tap-1-e73210.html',
+    // 'http://animehay.tv/phim/gintama-porori-hen-tap-1-e45481.html',
+    // 'http://animehay.tv/phim/gintama-gin-no-tamashii-hen-tap-1-e55133.html',
+    // 'http://animehay.tv/phim/gintama-shirogane-no-tamashii-hen-2-tap-1-e64715.html',
+    'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html',
+    'http://animehay.tv/phim/dr-stone-tap-1-e90220.html'
+  ]) {
+    try {
+      // let url = 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html' // change this line to download another anime
+      // let url = 'http://animehay.tv/phim/dr-stone-tap-1-e90220.html' // change this line to download another anime
 
-    let url = 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html' // change this line to download another anime
+      global.animeName = getAnimeName(url)
+      let chapters = await getAllChapUrl(url)
+      for (let chapter of chapters) {
+        await loadSourceHTML(chapter)
+      }
 
-    global.animeName = getAnimeName(url)
-    let chapters = await getAllChapUrl(url)
-    for (let chapter of chapters) {
-      await loadSourceHTML(chapter)
+      let iframeSrcs = chapters.map(getIframeSrc)
+      for (let index in iframeSrcs) {
+        console.log('============================================================================')
+        let chapter = iframeSrcs[index]
+        let chapterName = chapters[index].split('/').pop().replace(/\.[a-zA-Z]*$/, '')
+
+        let videoMetaUrl = await loadVideoMeta(chapter)
+        await download(videoMetaUrl, chapterName)
+      }
+
+      console.log('Downloaded successfully!')
+    } catch (error) {
+      console.error(error)
     }
-
-    let iframeSrcs = chapters.map(getIframeSrc)
-    for (let index in iframeSrcs) {
-      console.log('============================================================================')
-      let chapter = iframeSrcs[index]
-      let chapterName = chapters[index].split('/').pop().replace(/\.[a-zA-Z]*$/, '')
-
-      let videoMetaUrl = await loadVideoMeta(chapter)
-      await download(videoMetaUrl, chapterName)
-    }
-
-    console.log('Downloaded successfully!')
-  } catch (error) {
-    console.error(error)
   }
 })()
