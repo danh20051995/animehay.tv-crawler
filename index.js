@@ -137,6 +137,40 @@ const getIframeSrc = src => {
   return result
 }
 
+const getDirectURL = async src => {
+  let regex = /var\ sources\ \=(.*)\}\]$/gm
+  let animeName = global.animeName
+  let parts = url.parse(src, true)
+  let key = parts.query.key
+  let postUrl = parts.protocol + '//' + parts.host + '/initPlayer/' + key
+  let redirectPath = `./logs/${animeName}/${key}.html`
+  let redirect = ''
+  if (fs.existsSync(redirectPath)) {
+    redirect = fs.readFileSync(redirectPath, { encoding: 'utf8' })
+  } else {
+    let response = await post(postUrl)
+    redirect = await get(response.data)
+    fs.writeFileSync(redirectPath, redirect)
+  }
+
+  if (redirect.match(regex)) {
+    try {
+      let val = eval(redirect.match(regex).shift().replace(regex, '$1}]'))
+      if (Array.isArray(val) && val.length) {
+        let qualities = val.map(({ label }) => Number(label.match(/([0-9]*)/).shift()))
+        let max = Math.max(...qualities)
+        let index = qualities.indexOf(max)
+        let { file } = val[index]
+        return file
+      }
+    } catch(e) {
+      throw e
+    }
+  }
+
+  return false
+}
+
 const loadVideoMeta = async src => {
   let animeName = global.animeName
   let parts = url.parse(src, true)
@@ -203,6 +237,41 @@ const download = (src, chapter) => {
   })
 }
 
+const downloadIDM = (src, chapter) => {
+  let animeName = global.animeName
+  let animeOutputPath = path.join(__dirname, 'output', animeName)
+  if (!fs.existsSync(animeOutputPath)) {
+    fs.mkdirSync(animeOutputPath)
+  }
+
+  let fileName = `${chapter}.mp4`
+  let mp4Path = path.join(animeOutputPath, fileName)
+  if (fs.existsSync(mp4Path)) {
+    return console.log(`Already exists: ${fileName}`)
+  }
+
+  const { exec } = require('child_process')
+  const cmd = [
+    `/s`,
+    `/d`,
+    `"${src}"`,
+    `/p`,
+    `"${animeOutputPath}"`,
+    `/f`,
+    `"${fileName}"`
+  ]
+
+  return new Promise((resolve, reject) => {
+    console.log(`Downloading: ${fileName}`)
+    exec('idman ' + cmd.join(' '), (error, stdout, stderr) => {
+      if (error) {
+        return reject(error)
+      }
+      resolve(stdout)
+    })
+  })
+}
+
 const ensureReady = () => {
   let dirs = [
     `./logs`,
@@ -225,8 +294,12 @@ const ensureReady = () => {
     // 'http://animehay.tv/phim/gintama-porori-hen-tap-1-e45481.html',
     // 'http://animehay.tv/phim/gintama-gin-no-tamashii-hen-tap-1-e55133.html',
     // 'http://animehay.tv/phim/gintama-shirogane-no-tamashii-hen-2-tap-1-e64715.html',
-    'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html',
-    'http://animehay.tv/phim/dr-stone-tap-1-e90220.html'
+    // 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html',
+    // 'http://animehay.tv/phim/dr-stone-tap-1-e90220.html',
+    'http://animehay.tv/phim/one-punch-man-2015-tap-1-e4811.html'
+    // 'http://animehay.tv/phim/one-punch-man-2nd-season-tap-1-e89471.html',
+    // 'http://animehay.tv/phim/one-punch-man-road-to-hero-ova-tap-1-e295.html',
+    // 'http://animehay.tv/phim/one-punch-man-special-tap-1-e741.html'
   ]) {
     try {
       // let url = 'http://animehay.tv/phim/kimetsu-no-yaiba-tap-21-e90688.html' // change this line to download another anime
@@ -244,8 +317,13 @@ const ensureReady = () => {
         let chapter = iframeSrcs[index]
         let chapterName = chapters[index].split('/').pop().replace(/\.[a-zA-Z]*$/, '')
 
-        let videoMetaUrl = await loadVideoMeta(chapter)
-        await download(videoMetaUrl, chapterName)
+        let directURL = await getDirectURL(chapter)
+        if (directURL) {
+          await downloadIDM(directURL, chapterName)
+        } else {
+          let videoMetaUrl = await loadVideoMeta(chapter)
+          await download(videoMetaUrl, chapterName)
+        }
       }
 
       console.log('Downloaded successfully!')
